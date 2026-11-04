@@ -2,6 +2,18 @@
 
 基于 [niixyz64-star/table-tune](https://github.com/niixyz64-star/table-tune) 2.0.1 的个人增强版，适配安卓平板。保留原作者 MIT 许可，原项目说明见 UPSTREAM_README.md。
 
+## 安卓平板通过 BRAT 安装或更新
+
+在 Obsidian 中打开 BRAT 设置，选择 Add beta plugin，填写：
+
+```text
+w3330442790-sys/obsidian-table-tune
+```
+
+选择最新版本并启用“表格工具 · TableTune”。已有原版时，先在 BRAT 的跟踪列表中移除 `niixyz64-star/table-tune` 的更新来源（不要在 Obsidian 社区插件列表中卸载插件），再添加上述仓库。继续使用同一个 table-tune 目录和 data.json；如果 BRAT 提示插件已存在，选择原位更新，不删除原目录。重新启用插件或重启 Obsidian 后加载新版。后续更新在 BRAT 中检查此仓库。
+
+Release 包含 BRAT 必需的独立 `main.js`、`manifest.json`、`styles.css` 附件，以及备用手动安装 ZIP；不含 data.json。
+
 ## 原插件替换与已有表格
 
 插件 ID 仍是 `table-tune`，直接沿用原插件 `data.json`。不是安装第二份插件，也不会批量转换 Markdown 表格。首次启用不改写笔记源码；固定、底色、标记均默认关闭。已有列宽、行高、合并和对齐继续读取原数据。

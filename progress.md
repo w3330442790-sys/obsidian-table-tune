@@ -8,4 +8,4 @@
 
 原电脑插件已备份并替换三程序文件；替换前后 data.json 哈希一致，不写入 Markdown。程序待 Obsidian 重新启用或重启后加载。备份和具体替换报告保存在本地 private/install-backups（不提交 Git）。安卓真机、实际 Obsidian 嵌入式单元格编辑组件和 Excel 实际粘贴仍需验收。
 
-交付 dist/table-tune-2.1.0-android.zip。开发分支 feature/android-table-tools 保留本地，未发布至上游仓库。
+交付 dist/table-tune-2.1.0-android.zip。用户随后要求发布 GitHub 供平板 BRAT 安装；个人仓库为 w3330442790-sys/obsidian-table-tune，保留上游 fork 归属，独立上传 BRAT 所需附件。

@@ -1,32 +1,26 @@
-name: Release obsidian plugin
+name: Verify plugin
 
 on:
   push:
-    tags:
-      - "*"
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 
 jobs:
-  release:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Attest build provenance
-        uses: actions/attest@v4
+      - uses: actions/setup-node@v4
         with:
-          subject-path: |
-            main.js
-            styles.css
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            main.js
-            manifest.json
-            styles.css
-          body_path: RELEASE_NOTES.md
-          generate_release_notes: true
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: node --check main.js
+      - name: Check manifest version
+        run: node -e "const m=require('./manifest.json'),p=require('./package.json'),v=require('./versions.json');if(m.version!==p.version||v[m.version]!==m.minAppVersion)process.exit(1)"

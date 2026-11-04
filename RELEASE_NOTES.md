@@ -1,4 +1,12 @@
-## TableTune 2.0.1
+## 表格工具 · TableTune 2.1.0
+
+安卓触控、固定表头首列、一键整理、底色重点、Excel/TSV 复制与 HTML 导出。完整说明见 [2.1.0 发布说明](docs/releases/2.1.0.md)。
+
+BRAT 仓库：`w3330442790-sys/obsidian-table-tune`。继续使用原 table-tune 插件 ID 和 data.json，不删除或批量转换已有表格。
+
+以下为上游 2.0.1 的历史说明。
+
+## TableTune 2.0.1（上游历史）
 
 合并单元格编辑稳定性修复 / Merged-cell editing fixes.
 
