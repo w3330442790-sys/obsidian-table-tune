@@ -1,3 +1,12 @@
+# 2.1.0 — Personal Android edition (2026-11-04)
+
+- Replace the existing table-tune program in place; retain its ID and original data.json.
+- Add touch range selection, 44px toolbar, keyboard/viewport positioning and safe resize cancellation.
+- Add independent frozen header/first column, five layout actions and semantic cell colors/marks.
+- Add safe HTML/TSV copying and Vault-based HTML export with merge/layout preservation.
+- Extend native history, metadata identity and structural remapping for new fields.
+- Preserve existing content and layout on startup; no automatic Markdown conversion.
+
 # Changelog
 
 ## 2.0.1 — 2026-10-25

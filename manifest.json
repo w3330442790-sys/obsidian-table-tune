@@ -1,9 +1,9 @@
 {
   "id": "table-tune",
-  "name": "TableTune",
-  "version": "2.0.1",
+  "name": "表格工具 · TableTune",
+  "version": "2.1.0",
   "minAppVersion": "1.14.4",
-  "description": "Edit tables with stable widths, merged cells, text-first selection, clipboard support, alignment tools and native undo/redo. Layout is remembered per table.",
-  "author": "DH mini",
+  "description": "安卓平板表格增强：触控选区、固定表头首列、整理列宽、底色重点、Excel 复制和 HTML 导出。兼容原 TableTune 表格数据。",
+  "author": "Personal edition; based on DH mini / TableTune",
   "isDesktopOnly": false
 }

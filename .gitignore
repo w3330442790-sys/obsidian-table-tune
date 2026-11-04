@@ -17,3 +17,5 @@ Thumbs.db
 node_modules/
 dist/
 main.js.map
+artifacts/
+private/

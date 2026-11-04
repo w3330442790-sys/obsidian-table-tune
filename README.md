@@ -1,59 +1,54 @@
-# TableTune
+# 表格工具 · TableTune 2.1.0
 
-A table-editing plugin for Obsidian, with stable column widths, merged cells and a compact icon toolbar.
+基于 [niixyz64-star/table-tune](https://github.com/niixyz64-star/table-tune) 2.0.1 的个人增强版，适配安卓平板。保留原作者 MIT 许可，原项目说明见 UPSTREAM_README.md。
 
-## Version 2.0.1
+## 原插件替换与已有表格
 
-Requires **Obsidian 1.14.4 or newer**. Tested against Obsidian 1.14.4 on Windows; mobile behavior has not been verified.
+插件 ID 仍是 `table-tune`，直接沿用原插件 `data.json`。不是安装第二份插件，也不会批量转换 Markdown 表格。首次启用不改写笔记源码；固定、底色、标记均默认关闭。已有列宽、行高、合并和对齐继续读取原数据。
 
-- Drag cell borders to resize columns and rows. Typing keeps existing column widths; wide tables can scroll horizontally.
-- Merge and split cells. Drag and Shift selections expand to include intersecting merged cells with a continuous rectangular outline.
-- Click a cell to place the caret. Drag within text to select part of it; continue beyond the text to select cells.
-- Copy and paste cell ranges, including supported external HTML tables, tab-separated text and Markdown tables.
-- Insert/delete rows and columns, set horizontal alignment, and choose top/middle/bottom vertical alignment from the icon toolbar.
-- Clear selected cell contents with the eraser icon while retaining merged regions, column widths and alignment; undo/redo is supported.
-- Use **Ctrl+Z** to undo and **Ctrl+Y** to redo. Table edits and layout metadata participate in native editor history. On macOS, use Command in place of Ctrl; Command+Shift+Z is also supported for redo.
-- Keep tables in the same note independent. The first row uses ordinary text styling rather than forced bold text.
-- Select across a table from outside it to highlight it for deletion.
+最低 Obsidian 版本：1.14.4。更新仅替换以下三个文件：
 
-See [CHANGELOG.md](CHANGELOG.md) for release details.
+```text
+<笔记库>/.obsidian/plugins/table-tune/main.js
+<笔记库>/.obsidian/plugins/table-tune/manifest.json
+<笔记库>/.obsidian/plugins/table-tune/styles.css
+```
 
-## Installation
+**保留原目录和 data.json，不要删除整个插件文件夹，不要卸载后重装。** 安装包不含 data.json。安装前关闭插件或退出 Obsidian，将原来的三个程序文件和 data.json 复制到备份文件夹，再复制新程序文件覆盖，重新启用插件或重启 Obsidian。
 
-### BRAT
+安卓：解压 `table-tune-2.1.0-android.zip`，把其中 table-tune 文件夹内的三个程序文件复制到现有插件目录。不要用“删除目标文件夹再替换”的操作。电脑与平板的插件程序需要分别更新；是否同步 `.obsidian` 及插件配置取决于你的同步工具。仍指向上游仓库的 BRAT 更新会覆盖本个人版，不要用上游更新替代这份安装包。
 
-Add `niixyz64-star/table-tune` using the BRAT plugin.
+## 操作
 
-### Manual installation
+点击单元格可编辑文字；点击表格上方“表格工具”可选择整表。安卓工具栏停靠在可视区域底部，支持横向滑动，软键盘和分屏尺寸变化时重新定位。
 
-1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/niixyz64-star/table-tune/releases/latest).
-2. Place all three files in `<vault>/.obsidian/plugins/table-tune/`.
-3. Enable TableTune in **Settings → Community plugins**, or reload it after an update.
+- **选择区域**：先点起始格，再点结束格；自动包含交叉的合并单元格。普通滑动仍用于浏览。
+- **固定**：分别切换表头、首列。固定表头时出现约占可用面板高度 60% 的内部滚动区域。跨过固定边界的合并格需先拆分或关闭对应固定选项，不会自动拆分已有格子。
+- **整理**：适应屏幕、按内容调整、平均列宽、自动换行、重置布局。无显式选区时平均整表，有显式选区时平均选区涉及的列。列宽最低 64px，列数过多时保留横向滚动。
+- **样式**：五种浅色底色、默认底色、独立重点标记、清除样式；深色主题自动适配。
+- **复制/导出**：复制到 Excel（HTML 和 TSV）、复制纯文本、导出 HTML。HTML 文件保存在笔记库普通文件夹 `表格导出/`，重名添加数字后缀。
+- **撤销、重做**：使用 Obsidian 原生会话历史。尺寸、固定、换行、底色和标记均支持撤销。
+- **更多**：原有的合并、拆分、对齐和行列编辑。删除和清空需要再次点击确认；只有你主动执行才修改内容。
 
-When upgrading, preserve your existing `data.json`. Back up your vault before installing a major update.
+拖动单元格右侧手柄调整列宽；每行左侧单元格底部短线用于调整行高。手势取消或丢失捕获会恢复原尺寸。
 
-## Usage and storage
+“重置布局”恢复默认列宽、行高和换行，不清除文字、合并、对齐、底色、标记或固定选项。“清除样式”只清底色和重点标记。
 
-Edit tables in **Live Preview**. Drag a cell's right border to change its column width, or its bottom border to adjust row height. Select cells to reveal the floating toolbar. Reading view mirrors stored layout.
+## 数据与导出边界
 
-Widths, heights, merge regions and alignments are stored in the plugin's `data.json`, per note and table. Operations may insert an invisible table identifier into the first cell so later header edits do not lose its identity. Structural edits and pasted values update the Markdown source. Merges and presentation are plugin-managed and may not appear the same in other Markdown applications.
+内容仍在 Markdown；尺寸、合并和样式位于插件 data.json，按原来的表格标识保存。旧表格首次主动设置样式或布局时，沿用上游方式在首格添加不可见的稳定标识；首次启用不会添加标识。关闭插件后 Markdown 内容仍在，插件专属合并和样式不保证在其他 Markdown 应用中显示一致。
 
-Undo/redo is session history, not a persistent backup: operations performed before plugin reload or editor restart are not guaranteed to remain undoable. External clipboard support depends on formats supplied by the source application; arbitrary spreadsheet formatting is not preserved.
+Excel 是否接受 HTML 剪贴板取决于安卓系统和目标应用；富文本复制失败会提示使用纯文本或 HTML 文件，不会假报成功。导出保留表格结构、合并、尺寸、对齐、底色和重点，输出的是安全文本，不保留任意 Markdown 富文本、图片及电子表格公式计算行为。
 
-## 中文说明
+## 验证
 
-2.0.1 修复合并单元格后光标不出现、文字选区跳变，以及 Delete 无法删除选中文字的问题。
+已完成自动逻辑检查和独立浏览器触控模拟，详见 ACCEPTANCE.md。安卓真机、真实 Obsidian 嵌入式编辑器与系统 Excel 粘贴仍需实际验收；浏览器结果不等于这些环境已通过。
 
-2.0.0 新增合并/拆分单元格、连续矩形选区、文字优先拖选、跨应用表格粘贴、横向图标工具栏、水平与垂直对齐，以及原生撤销/重做。修复首行操作丢字、多表格相互影响、缩列宽边框错位及首次输入改变列宽等问题。
+```powershell
+npm ci
+npm test
+npm run build
+npm run test:ui
+```
 
-请使用 Obsidian 1.14.4 或更新版本。更新时保留 `data.json`，并先备份笔记。合并与样式由插件数据管理，不等同于可移植的 Markdown 原生合并单元格。
-
-## Inspiration / 交互设计参考
-
-TableTune's table interactions are primarily inspired by Feishu Docs. Its table editing feels smooth and intuitive, and this plugin aims to bring a similar interaction experience to Obsidian. This is an independent project, not an official Feishu product or an affiliated project.
-
-觉得飞书文档里的表格交互很丝滑、很好用，因此 TableTune 主要参考了飞书文档的表格交互方式，希望把类似的流畅编辑体验带到 Obsidian 中。本项目为独立开发，与飞书官方无隶属或合作关系。
-
-## License
-
-MIT
+UI 测试默认使用本机 Edge，可用 BROWSER_PATH 指定 Chromium。构建输出在 dist/table-tune。测试只使用隔离样例，不读取真实笔记；独立的 check-installed-data 脚本只有显式传入数据文件时才进行只读兼容检查。
