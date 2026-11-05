@@ -15,8 +15,7 @@ const api={
 window.require=id=>id==='obsidian'?api:id==='@codemirror/state'?TestCM.state:id==='@codemirror/view'?TestCM.view:id==='@codemirror/commands'?TestCM.commands:(()=>{throw Error('Unknown module '+id)})();
 window.startFixture=async Plugin=>{
  const p=window.p=new Plugin(),events=new Map();
- p.app={workspace:{getActiveFile:()=>({path:'sample.md'}),on:(name,f)=>{events.set(name,f);return{}},onLayoutReady:f=>callbacks.push(f),getActiveViewOfType:()=>({editor:window.editor})},vault:{adapter:{exists:async path=>files.has(path)},createFolder:async path=>files.set(path,{folder:true}),create:async(path,text)=>{if(files.has(path))throw Error('exists');files.set(path,text);return{path}}}};
- await p.onload();
+ p.app={workspace:{getActiveFile:()=>({path:'sample.md'}),on:(name,f)=>{events.set(name,f);return{}},onLayoutReady:f=>callbacks.push(f),getActiveViewOfType:()=>({editor:window.editor,getState:()=>({mode:'preview'}),leaf:{setViewState:async view=>{window.requestedViewState=view.state}}})},vault:{adapter:{exists:async path=>files.has(path)},createFolder:async path=>files.set(path,{folder:true}),create:async(path,text)=>{if(files.has(path))throw Error('exists');files.set(path,text);return{path}}}};
  const table=(id,n,m)=>{const t=document.createElement('table');t.id=id;t.dataset.fixtureUid=id==='existing'?'existing':'other';const head=t.createTHead().insertRow();for(let c=0;c<m;c++){const th=document.createElement('th');th.textContent=(c===0?p.encodeInvisibleUid(t.dataset.fixtureUid):'')+['项目名称','对比维度','说明','备注','关联','来源'][c];head.appendChild(th)}
   const body=t.createTBody();for(let r=1;r<n;r++){const row=body.insertRow();for(let c=0;c<m;c++){const cell=row.insertCell();cell.textContent=(r===2&&c===2)?'已有合并内容':(r===2||r===3)&&(c===2||c===3)?'':c===0?'项目 '+r:'第 '+r+' 行 · 第 '+c+' 列'}}
   const host=document.createElement('div');host.className='table-wrapper';host.appendChild(t);document.getElementById('tables').appendChild(host);return t;};
@@ -24,10 +23,11 @@ window.startFixture=async Plugin=>{
  const grids=()=>Array.from(document.querySelectorAll('#tables table')).map(t=>Array.from(t.rows,row=>Array.from(row.cells,c=>p.stripTableIdentity(c.textContent))));
  window.originalGrids=JSON.stringify(grids());window.originalTexts=existing.textContent;
  const source=Array.from(existing.rows,row=>p.buildRow(Array.from(row.cells,c=>c.textContent)));source.splice(1,0,p.buildRow(Array(6).fill('---')));window.originalSource=source.join('\n');
+ await p.onload();
  const cm=new TestCM.view.EditorView({state:TestCM.state.EditorState.create({doc:originalSource,extensions:[TestCM.commands.history(),...extensions]}),parent:document.getElementById('native-editor')});
  window.editor={cm,getLine:i=>cm.state.doc.line(i+1).text,lineCount:()=>cm.state.doc.lines,getValue:()=>cm.state.doc.toString(),getCursor:()=>({line:0,ch:0}),replaceRange:(text,from,to)=>{writes.push({text,from,to});cm.dispatch({changes:{from:from.line?cm.state.doc.line(from.line+1).from+from.ch:from.ch,to:to.line?cm.state.doc.line(to.line+1).from+to.ch:to.ch,insert:text}})}};
  // Fixture source mapping stands in for Obsidian's private widget mapping. The actual CodeMirror history is used.
  p.tableSourceInfo=(ed,t)=>{const grid=Array.from(t.rows,row=>Array.from(row.cells,c=>p.cleanCellText(c)));const uid=t.dataset.fixtureUid;grid[0][0]=p.encodeInvisibleUid(uid)+grid[0][0];return{uid,grid,header:p.buildRow(grid[0]),sep:p.buildRow(grid[0].map(()=> '---')),from:0,to:cm.state.doc.length,toPos:i=>({line:0,ch:i})};};
- p.scanEdit();for(const cb of callbacks)cb();await p._saveQueue;
+ for(const cb of callbacks)cb();await p._saveQueue;
  window.testGrids=grids;window.testEvents=events;window.ready=true;
 };

@@ -266,9 +266,9 @@ table.tcr-grid-table .tcr-merged-hidden { display: none !important; }
 
 /* Personal Android edition: every rule is scoped to plugin controls or opt-in attributes. */
 .tt-toolbar { padding:6px; gap:4px; touch-action:pan-x; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
-.tt-toolbar button { flex:0 0 auto; min-width:44px; min-height:44px; width:auto; height:44px; padding:0 12px; font-size:14px; color:var(--text-normal); touch-action:manipulation; }
+.tt-toolbar button { flex:0 0 auto; min-width:44px; min-height:44px; width:auto; height:44px; padding:0 12px; font-size:14px; color:var(--text-normal,#222); touch-action:manipulation; }
 .tt-toolbar .tt-status { font-size:12px; padding:0 4px; color:var(--text-muted); }
-.tt-open { min-height:44px; margin:4px 0; padding:6px 12px; font-size:13px; touch-action:manipulation; }
+.tt-open { display:block; position:sticky; left:0; z-index:15; width:max-content; min-height:44px; margin:4px 0; padding:6px 12px; font-size:13px; line-height:1.4; color:var(--text-normal,#222); background:var(--background-primary,#fff); border:1px solid var(--background-modifier-border,#bbb); touch-action:manipulation; }
 .tt-scroll { position:relative; max-width:100%; overflow-x:auto !important; overscroll-behavior-x:contain; }
 .tt-scroll-vertical { max-height:var(--tt-scroll-height,60vh); overflow-y:auto !important; scrollbar-gutter:stable; }
 table[data-tcr] .tt-fixed-header { position:sticky !important; top:0 !important; z-index:10; background:var(--tt-cell-bg,var(--background-primary,#fff)) !important; background-clip:padding-box; }

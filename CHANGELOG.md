@@ -1,3 +1,11 @@
+# 2.1.1 — Android tablet control visibility (2026-11-05)
+
+- Initialize tools on tables already open when the plugin is enabled or updated.
+- Open tools by tapping reading-view cells; offer a switch to Live Preview for editing.
+- Dock tools above visible Android navigation and keyboard toolbars.
+- Keep the table tools entry visible while horizontally scrolling wide tables.
+- Add regression checks for startup, reading taps, view switching, bottom navigation and horizontal scrolling.
+
 # 2.1.0 — Personal Android edition (2026-11-04)
 
 - Replace the existing table-tune program in place; retain its ID and original data.json.

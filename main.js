@@ -3280,7 +3280,7 @@ module.exports={PALETTE,MIN,fitWidths,equalWidths,contentWidths,remapStyles,merg
 "./plugin.cjs":function(module,exports,require){
 'use strict';
 const Base=require('./base.cjs');
-const {Notice,Menu}=require('obsidian');
+const {Notice,Menu,MarkdownView}=require('obsidian');
 const core=require('./core.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
 
@@ -3298,7 +3298,7 @@ module.exports=class TabletTableTools extends Base{
   window.visualViewport?.addEventListener('resize',viewport);window.visualViewport?.addEventListener('scroll',viewport);
   this._ttViewport=viewport;
   this.registerEvent(this.app.workspace.on('active-leaf-change',()=>{this._activeCell=null;this._touchRange=null;this.hideMergeToolbar();}));
-  this.app.workspace.onLayoutReady(()=>{if(this._ttLoaded)this.reflow();});
+  this.app.workspace.onLayoutReady(()=>{if(this._ttLoaded){this.processActive();this.scanEdit();this.reflow();}});
  }
  persist(){
   const data={...this._savedData,widths:this.widths,rowHeights:this.rowHeights,merges:this.merges,tableDims:this.tableDims,alignments:this.alignments||{},cellStyles:this.cellStyles||{},tableOptions:this.tableOptions||{}};
@@ -3374,6 +3374,10 @@ module.exports=class TabletTableTools extends Base{
   const open=document.createElement('button');open.type='button';open.className='tt-open';open.textContent='表格工具';open.setAttribute('aria-label','打开此表格工具');
   open.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
   open.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();this.selectWhole(table);});
+  // Reading view has no editor selection listeners. A real tap/click should
+  // still expose tools; listening for click leaves touch scrolling untouched.
+  const activate=e=>{const cell=e.target.closest?.('td,th');if(!table.closest('.cm-content')&&cell?.closest('table')===table)this.activateCell(table,cell);};
+  table.addEventListener('click',activate);
   // Sibling controls never enter table.rows or the Markdown source.
   host.insertBefore(open,table);
   const scroll=()=>{if(this._sel?.table===table)this.positionSelectionOverlay();};host.addEventListener('scroll',scroll,{passive:true});
@@ -3381,7 +3385,7 @@ module.exports=class TabletTableTools extends Base{
   if(typeof ResizeObserver!=='undefined'){let pending=0;observer=new ResizeObserver(()=>{
    if(pending)return;pending=requestAnimationFrame(()=>{pending=0;if(!table.isConnected)return;this.setScrollHeight(host);this.positionMergeToolbar(this.targetSelection());if(this._sel?.table===table)this.positionSelectionOverlay();});
   });observer.observe(host);}
-  this._ttCleanups?.set(table,()=>{open.remove();host.removeEventListener('scroll',scroll);observer?.disconnect();host.classList.remove('tt-scroll','tt-scroll-vertical');host.style.removeProperty('--tt-scroll-height');});
+  this._ttCleanups?.set(table,()=>{open.remove();table.removeEventListener('click',activate);host.removeEventListener('scroll',scroll);observer?.disconnect();host.classList.remove('tt-scroll','tt-scroll-vertical');host.style.removeProperty('--tt-scroll-height');});
  }
  scanEdit(){super.scanEdit();if(this._ttCleanups)for(const [table,cleanup]of this._ttCleanups)if(!table.isConnected){cleanup();this._ttCleanups.delete(table);}}
  setScrollHeight(host){
@@ -3546,6 +3550,11 @@ module.exports=class TabletTableTools extends Base{
   this.showMergeToolbar(true);const bar=this._toolbar;bar.replaceChildren();bar.classList.add('tt-toolbar');
   const edit=!!sel.table.closest('.cm-content'),opts=this.optionsFor(sel.path,sel.tid);
   const add=(label,action,pressed)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('aria-label',label);if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));b.addEventListener('click',e=>{e.stopPropagation();action(b);});bar.appendChild(b);return b;};
+  if(!edit)add('编辑表格',async()=>{
+   const view=this.app.workspace.getActiveViewOfType(MarkdownView);if(!view)return;
+   try{await view.leaf.setViewState({type:'markdown',state:{...view.getState(),mode:'source',source:false}});new Notice('已切换到实时预览，轻点表格即可显示全部编辑功能');}
+   catch(e){console.error('Table tools view switch failed',e);new Notice('请切换到实时预览后轻点表格');}
+  });
   if(edit){
    add(this._touchRange?'完成选择':'选择区域',()=>{if(this._touchRange)this._touchRange=null;else this._touchRange={table:sel.table,anchor:null};this.refreshMergeToolbar();},!!this._touchRange);
    if(this._touchRange){const status=document.createElement('span');status.className='tt-status';status.textContent=this._touchRange.anchor?'再点结束格':'点起始格';bar.appendChild(status);}
@@ -3579,7 +3588,15 @@ module.exports=class TabletTableTools extends Base{
   const pane=sel.table.closest('.workspace-leaf-content,.markdown-source-view,.markdown-preview-view'),rect=pane?.getBoundingClientRect()||{left:0,right:w};
   const left=Math.max(offsetX+4,rect.left+4),right=Math.min(offsetX+w-4,rect.right-4);
   this._toolbar.style.maxWidth=Math.max(100,right-left)+'px';this._toolbar.style.left=left+'px';
-  this._toolbar.style.top=Math.max(offsetY+4,offsetY+h-this._toolbar.offsetHeight-12)+'px';this._toolbar.style.visibility='';
+  let bottom=offsetY+h;
+  // Obsidian's Android navigation/keyboard toolbar occupies the visual
+  // viewport too. Dock above visible controls that overlap this pane.
+  document.querySelectorAll('.mobile-navbar,.mobile-toolbar').forEach(control=>{
+   const css=getComputedStyle(control),r=control.getBoundingClientRect();
+   if(css.display!=='none'&&css.visibility!=='hidden'&&Number(css.opacity)!==0&&r.width>0&&r.height>0&&r.right>left&&r.left<right&&r.bottom>offsetY&&r.top<offsetY+h)
+    bottom=Math.min(bottom,r.top);
+  });
+  this._toolbar.style.top=Math.max(offsetY+4,bottom-this._toolbar.offsetHeight-12)+'px';this._toolbar.style.visibility='';
  }
  onunload(){
   this._ttLoaded=false;this._tapCleanup?.();this._rowCleanup?.();

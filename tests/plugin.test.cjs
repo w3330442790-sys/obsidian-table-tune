@@ -13,7 +13,7 @@ function fixture(){
 }
 const plain=x=>JSON.parse(JSON.stringify(x));
 test('replacement uses original plugin ID and newer version',()=>{
- const m=require('../manifest.json');a.equal(m.id,'table-tune');a.equal(m.version,'2.1.0');a.equal(m.isDesktopOnly,false);
+ const m=require('../manifest.json');a.equal(m.id,'table-tune');a.equal(m.version,require('../package.json').version);a.equal(require('../versions.json')[m.version],m.minAppVersion);a.equal(m.isDesktopOnly,false);
 });
 test('persist preserves unknown data and legacy table layout',async()=>{
  const {p}=fixture();p.widths={'note.md':{t:['100px','200px']}};p.merges={'note.md':{t:[{r:1,c:0,rowspan:1,colspan:2}]}};

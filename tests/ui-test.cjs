@@ -12,11 +12,33 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
  await page.goto('http://127.0.0.1:'+server.address().port+'/tests/fixture.html');await page.waitForFunction(()=>window.ready);
  const cell=(r,c)=>page.locator('#existing tr').nth(r).locator('th,td').nth(c);
  const action=async(group,item)=>{await page.getByRole('button',{name:group,exact:true}).click();await page.getByRole('button',{name:item,exact:true}).click();await page.waitForTimeout(60);};
+ await check('enabling plugin enhances already open tables without reopening note',async()=>{
+  a.equal(await page.locator('#tables .tt-open').count(),2);
+ });
+ await check('Android reading view tap opens tools and offers editing',async()=>{
+  await page.evaluate(()=>{const preview=document.createElement('div');preview.className='markdown-preview-view';preview.id='reading-fixture';preview.innerHTML='<table data-fixture-uid=\"reading\"><thead><tr><th>名称</th><th>说明</th></tr></thead><tbody><tr><td>消渴</td><td>示例</td></tr></tbody></table>';document.querySelector('.workspace-leaf-content').prepend(preview);p.postProcess(preview,{sourcePath:'sample.md'});});
+  await page.locator('#reading-fixture td').first().tap();
+  a.equal(await page.getByRole('button',{name:'复制/导出',exact:true}).isVisible(),true);
+  await page.getByRole('button',{name:'编辑表格',exact:true}).tap();
+  a.deepEqual(await page.evaluate(()=>window.requestedViewState),{mode:'source',source:false});
+  await page.evaluate(()=>{p._activeCell=null;p.hideMergeToolbar();document.getElementById('reading-fixture').remove();});
+ });
+ await check('Android toolbar stays above the native bottom navigation',async()=>{
+  await page.evaluate(()=>{const nav=document.createElement('div');nav.className='mobile-navbar';nav.id='android-nav';Object.assign(nav.style,{position:'fixed',left:'0',bottom:'0',width:'100%',height:'64px'});document.body.appendChild(nav);p.activateCell(document.getElementById('existing'),document.getElementById('existing').rows[1].cells[0]);});
+  const bar=await page.locator('.tt-toolbar').boundingBox(),nav=await page.locator('#android-nav').boundingBox();a.ok(bar.y+bar.height<=nav.y,JSON.stringify({bar,nav}));
+  await page.evaluate(()=>{document.getElementById('android-nav').remove();p._activeCell=null;p.hideMergeToolbar();});
+ });
  await check('startup keeps all existing Markdown, tables and cell contents',async()=>{
   a.equal(await page.evaluate(()=>editor.getValue()===originalSource),true);a.equal(await page.evaluate(()=>writes.length),0);a.equal(await page.evaluate(()=>JSON.stringify(testGrids())===originalGrids),true);a.equal(await page.locator('#tables table').count(),2);
   a.equal(await cell(2,2).isVisible(),true);a.equal(await page.locator('#existing .tcr-merged-hidden').count(),3);
   a.deepEqual(await page.evaluate(()=>p.widths['sample.md'].uexisting),['200px','210px','220px','230px','240px','250px']);
   a.equal(await page.locator('.tt-fixed-header,.tt-fixed-first').count(),0);
+ });
+ await check('table tools entry remains reachable after horizontal scrolling',async()=>{
+  await page.evaluate(()=>{document.getElementById('existing').parentElement.scrollLeft=400;});
+  const entry=await page.locator('#existing').evaluate(t=>{const host=t.parentElement,r=host.getBoundingClientRect(),b=host.querySelector('.tt-open').getBoundingClientRect();return{left:b.left,hostLeft:r.left,right:b.right,hostRight:r.right};});
+  a.ok(entry.left>=entry.hostLeft&&entry.right<=entry.hostRight,JSON.stringify(entry));
+  await page.evaluate(()=>{document.getElementById('existing').parentElement.scrollLeft=0;});
  });
  await check('normal touch edits without installing range-drag listeners',async()=>{await cell(1,0).tap();a.equal(await page.evaluate(()=>!!p._drag),false);a.equal(await page.evaluate(()=>!!p._sel),false);a.equal(await page.getByRole('button',{name:'选择区域',exact:true}).isVisible(),true);});
  await check('touch toolbar buttons are at least 44px',async()=>{const sizes=await page.locator('.tt-toolbar button').evaluateAll(bs=>bs.map(b=>[b.getBoundingClientRect().width,b.getBoundingClientRect().height]));a.ok(sizes.every(([w,h])=>w>=44&&h>=44));});
