@@ -1,3 +1,12 @@
+# 2.1.2 — Restore contextual icon tools (2026-11-05)
+
+- Restore a compact icon popup above the clicked table edge, resize handle or selected region; remove bottom docking and ordinary text-tap activation.
+- Restore direct merge, split, all six alignment, clear, insert and delete icons using upstream commands. Destructive operations retain confirmation and axis guards.
+- Add touch selection of the current row/column and two-tap multiple-row/column ranges.
+- Add persistent shortcut visibility customization and reset; hidden commands remain in More.
+- Replace the large table-tools text entry with a small table icon; maintain accessible names and 40px hit targets.
+- Verify actual merge/source rewriting and splitting as well as positioning, selection, customization, history and compatibility in isolated tests.
+
 # 2.1.1 — Android tablet control visibility (2026-11-05)
 
 - Initialize tools on tables already open when the plugin is enabled or updated.

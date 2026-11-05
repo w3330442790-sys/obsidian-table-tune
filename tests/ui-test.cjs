@@ -11,13 +11,23 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
  const context=await browser.newContext({viewport:{width:1000,height:1100},hasTouch:true,isMobile:true});const page=await context.newPage();page.setDefaultTimeout(6000);page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port+'/tests/fixture.html');await page.waitForFunction(()=>window.ready);
  const cell=(r,c)=>page.locator('#existing tr').nth(r).locator('th,td').nth(c);
+ const edge=async target=>{const b=await target.boundingBox();await page.touchscreen.tap(b.x+b.width/2,b.y+2);};
  const action=async(group,item)=>{await page.getByRole('button',{name:group,exact:true}).click();await page.getByRole('button',{name:item,exact:true}).click();await page.waitForTimeout(60);};
  await check('enabling plugin enhances already open tables without reopening note',async()=>{
   a.equal(await page.locator('#tables .tt-open').count(),2);
  });
+ await check('ordinary text tap keeps tools closed; edge tap opens icon popup above the point',async()=>{
+  await cell(1,0).tap();a.equal(await page.locator('.tt-toolbar:visible').count(),0);
+  await edge(cell(1,0));const b=await page.locator('.tt-toolbar').boundingBox(),c=await cell(1,0).boundingBox();
+  a.ok(b.y+b.height<=c.y+2,JSON.stringify({b,c}));
+  const buttons=await page.locator('.tt-toolbar button').evaluateAll(bs=>bs.map(b=>({text:b.textContent,svg:!!b.querySelector('svg'),label:b.getAttribute('aria-label')})));
+  a.ok(buttons.length>0&&buttons.every(b=>!b.text&&b.svg&&b.label),JSON.stringify(buttons));
+  for(const name of ['合并单元格','拆分单元格','居中对齐','垂直居中'])a.equal(await page.getByRole('button',{name,exact:true}).count(),1);
+  await page.getByRole('button',{name:'关闭',exact:true}).click();
+ });
  await check('Android reading view tap opens tools and offers editing',async()=>{
   await page.evaluate(()=>{const preview=document.createElement('div');preview.className='markdown-preview-view';preview.id='reading-fixture';preview.innerHTML='<table data-fixture-uid=\"reading\"><thead><tr><th>名称</th><th>说明</th></tr></thead><tbody><tr><td>消渴</td><td>示例</td></tr></tbody></table>';document.querySelector('.workspace-leaf-content').prepend(preview);p.postProcess(preview,{sourcePath:'sample.md'});});
-  await page.locator('#reading-fixture td').first().tap();
+  await edge(page.locator('#reading-fixture td').first());
   a.equal(await page.getByRole('button',{name:'复制/导出',exact:true}).isVisible(),true);
   await page.getByRole('button',{name:'编辑表格',exact:true}).tap();
   a.deepEqual(await page.evaluate(()=>window.requestedViewState),{mode:'source',source:false});
@@ -40,13 +50,34 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
   a.ok(entry.left>=entry.hostLeft&&entry.right<=entry.hostRight,JSON.stringify(entry));
   await page.evaluate(()=>{document.getElementById('existing').parentElement.scrollLeft=0;});
  });
- await check('normal touch edits without installing range-drag listeners',async()=>{await cell(1,0).tap();a.equal(await page.evaluate(()=>!!p._drag),false);a.equal(await page.evaluate(()=>!!p._sel),false);a.equal(await page.getByRole('button',{name:'选择区域',exact:true}).isVisible(),true);});
- await check('touch toolbar buttons are at least 44px',async()=>{const sizes=await page.locator('.tt-toolbar button').evaluateAll(bs=>bs.map(b=>[b.getBoundingClientRect().width,b.getBoundingClientRect().height]));a.ok(sizes.every(([w,h])=>w>=44&&h>=44));});
+ await check('normal touch edits without installing range-drag listeners or opening tools',async()=>{await cell(1,0).tap();a.equal(await page.evaluate(()=>!!p._drag),false);a.equal(await page.evaluate(()=>!!p._sel),false);a.equal(await page.locator('.tt-toolbar:visible').count(),0);await edge(cell(1,0));});
+ await check('icon toolbar touch targets are at least 40px',async()=>{const sizes=await page.locator('.tt-toolbar button').evaluateAll(bs=>bs.map(b=>[b.getBoundingClientRect().width,b.getBoundingClientRect().height]));a.ok(sizes.length&&sizes.every(([w,h])=>w>=40&&h>=40));});
+ await check('customization persists hidden icons without removing commands or table data',async()=>{
+  await action('自定义工具栏','显示：居中对齐');a.equal(await page.locator('.tt-toolbar').getByRole('button',{name:'居中对齐',exact:true}).count(),0);
+  await page.evaluate(()=>p._saveQueue);a.equal(await page.evaluate(()=>savedData.toolbarHidden.includes('居中对齐')),true);a.deepEqual(await page.evaluate(()=>savedData.future),{untouched:true});
+  await action('更多','居中对齐');a.equal(await page.evaluate(()=>p.alignments['sample.md'].uexisting['1,0']),'center');
+  await action('自定义工具栏','恢复默认图标');a.equal(await page.getByRole('button',{name:'居中对齐',exact:true}).count(),1);
+ });
+ await check('direct horizontal and vertical center icons preserve each other',async()=>{
+  await page.getByRole('button',{name:'居中对齐',exact:true}).click();await page.getByRole('button',{name:'垂直居中',exact:true}).click();
+  a.deepEqual(await page.evaluate(()=>p.alignments['sample.md'].uexisting['1,0']),{horizontal:'center',vertical:'middle'});
+ });
+ await check('touch selects current whole row and column without modifier keys',async()=>{
+  await action('选择行列','选择当前行');a.deepEqual(await page.evaluate(()=>({axis:p._sel.axis,indices:[...p._sel.indices],c2:p._sel.c2})),{axis:'row',indices:[1],c2:5});
+  a.equal(await page.getByRole('button',{name:'删除列',exact:true}).isDisabled(),true);a.equal(await page.getByRole('button',{name:'在右侧插入列',exact:true}).isDisabled(),true);
+  await action('选择行列','选择当前列');a.deepEqual(await page.evaluate(()=>({axis:p._sel.axis,indices:[...p._sel.indices],r2:p._sel.r2})),{axis:'column',indices:[0],r2:29});
+  a.equal(await page.getByRole('button',{name:'删除行',exact:true}).isDisabled(),true);a.equal(await page.getByRole('button',{name:'在下方插入行',exact:true}).isDisabled(),true);
+ });
+ await check('two taps select multiple complete rows and columns',async()=>{
+  await action('选择行列','点选多行');await cell(1,0).tap();await cell(3,0).tap();a.deepEqual(await page.evaluate(()=>[p._sel.axis,[...p._sel.indices]]),['row',[1,2,3]]);
+  await action('选择行列','点选多列');await cell(1,0).tap();await cell(1,1).tap();a.deepEqual(await page.evaluate(()=>[p._sel.axis,[...p._sel.indices]]),['column',[0,1]]);
+  await edge(cell(1,0));
+ });
  await check('two taps select a range without Shift',async()=>{await page.getByRole('button',{name:'选择区域',exact:true}).tap();await cell(1,0).tap();await cell(1,1).tap();a.deepEqual(await page.evaluate(()=>[p._sel.r1,p._sel.c1,p._sel.r2,p._sel.c2]),[1,0,1,1]);a.equal(await page.evaluate(()=>!!p._touchRange),false);});
  await check('toolbar style action preserves range and applies to two cells',async()=>{await action('样式','浅黄底色');a.equal(await cell(1,0).getAttribute('data-tt-bg'),'yellow');a.equal(await cell(1,1).getAttribute('data-tt-bg'),'yellow');a.equal(await page.evaluate(()=>p._sel.cells.size),2);});
- await check('real CodeMirror undo and redo restore styles',async()=>{await page.getByRole('button',{name:'撤销',exact:true}).click();await page.waitForTimeout(80);a.equal(await cell(1,0).getAttribute('data-tt-bg'),null);await cell(1,0).tap();await page.getByRole('button',{name:'重做',exact:true}).click();await page.waitForTimeout(80);a.equal(await cell(1,0).getAttribute('data-tt-bg'),'yellow');});
- await check('mark coexists with background and clear styles retains text',async()=>{await cell(1,0).tap();const before=await cell(1,0).textContent();await action('样式','重点标记');a.equal(await cell(1,0).getAttribute('data-tt-marked'),'true');a.equal(await cell(1,0).getAttribute('data-tt-bg'),'yellow');await action('样式','清除样式');a.equal(await cell(1,0).textContent(),before);a.equal(await cell(1,0).getAttribute('data-tt-bg'),null);});
- await check('fit respects pane width and equalization defaults to whole table',async()=>{await action('整理','适应屏幕');const widths=await page.evaluate(()=>p.widths['sample.md'].uexisting.map(parseFloat));a.ok(widths.every(w=>w>=64));a.ok(widths.reduce((a,b)=>a+b)<=950);await action('整理','平均列宽');const next=await page.evaluate(()=>p.widths['sample.md'].uexisting.map(parseFloat));a.equal(next.reduce((a,b)=>a+b),widths.reduce((a,b)=>a+b));a.ok(Math.max(...next)-Math.min(...next)<=1);});
+ await check('real CodeMirror undo and redo restore styles',async()=>{await page.getByRole('button',{name:'撤销',exact:true}).click();await page.waitForTimeout(80);a.equal(await cell(1,0).getAttribute('data-tt-bg'),null);await edge(cell(1,0));await page.getByRole('button',{name:'重做',exact:true}).click();await page.waitForTimeout(80);a.equal(await cell(1,0).getAttribute('data-tt-bg'),'yellow');});
+ await check('mark coexists with background and clear styles retains text',async()=>{await edge(cell(1,0));const before=await cell(1,0).textContent();await action('样式','重点标记');a.equal(await cell(1,0).getAttribute('data-tt-marked'),'true');a.equal(await cell(1,0).getAttribute('data-tt-bg'),'yellow');await action('样式','清除样式');a.equal(await cell(1,0).textContent(),before);a.equal(await cell(1,0).getAttribute('data-tt-bg'),null);});
+ await check('fit respects pane width and equalization respects whole-table selection',async()=>{await page.evaluate(()=>p.selectWhole(document.getElementById('existing')));await action('整理','适应屏幕');const widths=await page.evaluate(()=>p.widths['sample.md'].uexisting.map(parseFloat));a.ok(widths.every(w=>w>=64));a.ok(widths.reduce((a,b)=>a+b)<=950);await action('整理','平均列宽');const next=await page.evaluate(()=>p.widths['sample.md'].uexisting.map(parseFloat));a.equal(next.reduce((a,b)=>a+b),widths.reduce((a,b)=>a+b));a.ok(Math.max(...next)-Math.min(...next)<=1);});
  await check('cancelled column resize restores widths without persisting partial drag',async()=>{
   const state=await page.evaluate(()=>{const table=document.getElementById('existing'),before=JSON.stringify(p.widths['sample.md'].uexisting),handle=table.querySelector('.tcr-handle');handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:9,pointerType:'touch',button:0,clientX:200,clientY:200}));window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:9,pointerType:'touch',clientX:300,clientY:200}));window.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:9,pointerType:'touch'}));return {before,after:JSON.stringify(p.widths['sample.md'].uexisting),resizing:!!table.dataset.tcrResizing}});a.equal(state.after,state.before);a.equal(state.resizing,false);
  });
@@ -57,7 +88,8 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
   const state=await page.evaluate(()=>{const table=document.getElementById('existing');p.setRowHeights('sample.md','uexisting',[null,'90px']);p.reflowTable(table);p._touchRange={table,anchor:null};const handle=table.rows[1].cells[0].querySelector('.tt-row-handle');const before=parseFloat(getComputedStyle(table).gridTemplateRows.split(' ')[1]);handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:20,pointerType:'touch',button:0,clientY:100}));window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:20,pointerType:'touch',clientY:120}));const after=parseFloat(p.getRowHeights('sample.md','uexisting')[1]);window.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:20}));p._touchRange=null;return{before,after,cancelled:p.getRowHeights('sample.md','uexisting')[1],cleanup:!!p._rowCleanup}});a.equal(state.after,state.before+20);a.equal(state.cancelled,'90px');a.equal(state.cleanup,false);
  });
  await check('touch toolbar actions preserve active embedded editor focus',async()=>{
-  await page.evaluate(()=>{const input=document.createElement('input');input.id='focus-fixture';document.body.appendChild(input);input.focus();});
+  await page.evaluate(()=>p.refreshMergeToolbar());
+  await page.evaluate(()=>{const input=document.createElement('input');input.id='focus-fixture';input.style.position='fixed';input.style.top='0';document.body.appendChild(input);input.focus({preventScroll:true});});
   await page.getByRole('button',{name:'选择区域',exact:true}).tap();a.equal(await page.evaluate(()=>document.activeElement.id),'focus-fixture');
   await page.getByRole('button',{name:'完成选择',exact:true}).tap();await page.evaluate(()=>document.getElementById('focus-fixture').remove());
  });
@@ -85,7 +117,7 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
   a.equal(state.rows,30);a.equal(state.merged,'已有合并内容');a.equal(state.hidden,3);a.deepEqual(state.widths,await page.evaluate(()=>p.widths['sample.md'].uexisting));a.equal(state.text,await page.evaluate(()=>originalSource));
  });
  await check('toolbar stays inside split-pane and simulated keyboard viewport',async()=>{
-  await page.evaluate(()=>{document.querySelector('.workspace-leaf-content').style.width='520px';Object.defineProperty(window,'visualViewport',{configurable:true,value:{width:1000,height:560,offsetTop:0,offsetLeft:0,addEventListener(){},removeEventListener(){}}});p._ttViewport();});
+  await page.evaluate(()=>{document.querySelector('.workspace-leaf-content').style.width='520px';Object.defineProperty(window,'visualViewport',{configurable:true,value:{width:1000,height:560,offsetTop:0,offsetLeft:0,addEventListener(){},removeEventListener(){}}});const t=document.getElementById('existing');t.parentElement.scrollTop=0;t.parentElement.scrollLeft=0;p.clearMergeSelection();p.rememberToolbarAnchor(t,t.rows[1].cells[0]);p.activateCell(t,t.rows[1].cells[0]);p._ttViewport();});
   const b=await page.locator('.tt-toolbar').boundingBox();a.ok(b.x>=0&&b.x+b.width<=550&&b.y+b.height<=560,JSON.stringify(b));
  });
  await check('HTML export preserves merge layout without changing the note',async()=>{
@@ -94,6 +126,24 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
  });
  await check('rich clipboard denial reports fallback without false success',async()=>{await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{write:async()=>{throw Error('denied')},writeText:async text=>window.copiedPlain=text}}));await action('复制/导出','复制到 Excel');a.match(await page.evaluate(()=>notices.at(-1)),/纯文本/);await action('复制/导出','复制纯文本');a.ok(await page.evaluate(()=>copiedPlain.includes('\t')));});
  await check('dark theme changes semantic cell colors',async()=>{await page.evaluate(()=>{document.body.classList.add('theme-dark');p.selectRect(document.getElementById('existing'),1,0,1,0,'sample.md','uexisting');p.setCellStyle('bg','blue')});a.equal(await cell(1,0).evaluate(c=>getComputedStyle(c).backgroundColor),'rgb(41, 66, 94)');});
+ await check('direct merge and split icons execute original source and metadata operations',async()=>{
+  await page.evaluate(()=>{
+   window.beforeScratchSource=editor.getValue();window.beforeScratchMapping=p.tableSourceInfo;
+   const lines=[p.buildRow([p.encodeInvisibleUid('scratch')+'A','B']),p.buildRow(['---','---']),p.buildRow(['甲','乙'])];
+   editor.cm.dispatch({changes:{from:0,to:editor.cm.state.doc.length,insert:lines.join('\n')}});
+   const host=document.createElement('div');host.id='scratch-host';host.className='cm-content';document.querySelector('.workspace-leaf-content').prepend(host);
+   window.renderScratch=()=>{host.replaceChildren();const table=document.createElement('table');table.id='scratch';table.dataset.fixtureUid='scratch';const rows=editor.getValue().split('\n').filter((_,i)=>i!==1).map(line=>p.splitRow(line));rows.forEach((cells,r)=>{const tr=(r===0?table.createTHead():table.tBodies[0]||table.createTBody()).insertRow();cells.forEach(text=>{const c=document.createElement(r===0?'th':'td');c.textContent=text;tr.appendChild(c);});});host.appendChild(table);p.enhance(table,{sourcePath:'sample.md'},true);return table;};
+   const nativeMapping=Object.getPrototypeOf(Object.getPrototypeOf(p)).tableSourceInfo;
+   p.tableSourceInfo=(ed,t)=>t.id==='scratch'?nativeMapping.call(p,ed,t):beforeScratchMapping(ed,t);
+   const table=renderScratch();p.clearMergeSelection();p._toolbarAnchor=null;p.selectRect(table,1,0,1,1,'sample.md',p.tableId(table));
+  });
+  a.equal(await page.getByRole('button',{name:'合并单元格',exact:true}).isEnabled(),true);await page.getByRole('button',{name:'合并单元格',exact:true}).click();
+  a.match(await page.evaluate(()=>editor.getValue()),/甲<br>乙/);a.equal(await page.evaluate(()=>p.merges['sample.md'].uscratch.length),1);
+  await page.evaluate(()=>{const table=renderScratch();p.clearMergeSelection();p._toolbarAnchor=null;p.activateCell(table,table.rows[1].cells[0]);});
+  a.equal(await page.getByRole('button',{name:'拆分单元格',exact:true}).isEnabled(),true);await page.getByRole('button',{name:'拆分单元格',exact:true}).click();
+  a.equal(await page.evaluate(()=>p.merges['sample.md'].uscratch.length),0);a.equal(await page.locator('#scratch .tcr-merged-hidden').count(),0);a.match(await page.evaluate(()=>editor.getValue()),/甲<br>乙/);
+  await page.evaluate(()=>{document.getElementById('scratch-host').remove();p.tableSourceInfo=beforeScratchMapping;editor.cm.dispatch({changes:{from:0,to:editor.cm.state.doc.length,insert:beforeScratchSource}});p.clearMergeSelection();p._toolbarAnchor=null;p.scanEdit();p.activateCell(document.getElementById('existing'),document.getElementById('existing').rows[1].cells[0]);});
+ });
  await page.evaluate(()=>{document.querySelector('.workspace-leaf-content').style.width='';document.getElementById('existing').parentElement.scrollTop=0;document.getElementById('existing').parentElement.scrollLeft=0;Object.defineProperty(window,'visualViewport',{configurable:true,value:{width:1000,height:1100,offsetTop:0,offsetLeft:0,addEventListener(){},removeEventListener(){}}});p._ttViewport();});
  await page.screenshot({path:path.join(out,'android-table-dark.png'),fullPage:true});
  await page.evaluate(()=>document.body.classList.remove('theme-dark'));await page.screenshot({path:path.join(out,'android-table-light.png'),fullPage:true});

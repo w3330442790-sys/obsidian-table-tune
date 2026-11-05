@@ -3,7 +3,7 @@ window.notices=[];window.writes=[];window.files=new Map();window.savedData=null;
 const data={widths:{'sample.md':{uexisting:['200px','210px','220px','230px','240px','250px'],uother:['120px','150px']}},rowHeights:{},merges:{'sample.md':{uexisting:[{r:2,c:2,rowspan:2,colspan:2}]}},tableDims:{'sample.md':{uexisting:{rows:30,cols:6},uother:{rows:3,cols:2}}},alignments:{'sample.md':{uexisting:{'1,1':'center'}}},future:{untouched:true}};
 const api={
  Plugin:class{async loadData(){return JSON.parse(JSON.stringify(data))}async saveData(d){window.savedData=JSON.parse(JSON.stringify(d))}registerEvent(){}registerEditorExtension(e){extensions.push(...e)}registerMarkdownPostProcessor(f){this.postProcess=f}addCommand(c){commands.push(c)}},
- MarkdownView:class{},Notice:class{constructor(t){notices.push(t)}},setIcon(){},
+ MarkdownView:class{},Notice:class{constructor(t){notices.push(t)}},setIcon(el,name){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.innerHTML='<path d="M4 4h16v16H4zM4 12h16M12 4v16" fill="none" stroke="currentColor"/>';svg.dataset.fixtureIcon=name;el.replaceChildren(svg);},
  Menu:class{
   constructor(){this.items=[]}addItem(build){const item={setTitle:t=>{item.title=t;return item},setChecked:v=>{item.checked=v;return item},onClick:f=>{item.run=f;return item}};build(item);this.items.push(item);return this}
   showAtPosition(pos){document.querySelectorAll('.menu').forEach(m=>m.remove());const menu=document.createElement('div');menu.className='menu';
@@ -26,6 +26,7 @@ window.startFixture=async Plugin=>{
  await p.onload();
  const cm=new TestCM.view.EditorView({state:TestCM.state.EditorState.create({doc:originalSource,extensions:[TestCM.commands.history(),...extensions]}),parent:document.getElementById('native-editor')});
  window.editor={cm,getLine:i=>cm.state.doc.line(i+1).text,lineCount:()=>cm.state.doc.lines,getValue:()=>cm.state.doc.toString(),getCursor:()=>({line:0,ch:0}),replaceRange:(text,from,to)=>{writes.push({text,from,to});cm.dispatch({changes:{from:from.line?cm.state.doc.line(from.line+1).from+from.ch:from.ch,to:to.line?cm.state.doc.line(to.line+1).from+to.ch:to.ch,insert:text}})}};
+ editor.getDoc=()=>editor;
  // Fixture source mapping stands in for Obsidian's private widget mapping. The actual CodeMirror history is used.
  p.tableSourceInfo=(ed,t)=>{const grid=Array.from(t.rows,row=>Array.from(row.cells,c=>p.cleanCellText(c)));const uid=t.dataset.fixtureUid;grid[0][0]=p.encodeInvisibleUid(uid)+grid[0][0];return{uid,grid,header:p.buildRow(grid[0]),sep:p.buildRow(grid[0].map(()=> '---')),from:0,to:cm.state.doc.length,toPos:i=>({line:0,ch:i})};};
  for(const cb of callbacks)cb();await p._saveQueue;
