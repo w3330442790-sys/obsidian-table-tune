@@ -3,7 +3,8 @@ window.notices=[];window.writes=[];window.files=new Map();window.savedData=null;
 const data={widths:{'sample.md':{uexisting:['200px','210px','220px','230px','240px','250px'],uother:['120px','150px']}},rowHeights:{},merges:{'sample.md':{uexisting:[{r:2,c:2,rowspan:2,colspan:2}]}},tableDims:{'sample.md':{uexisting:{rows:30,cols:6},uother:{rows:3,cols:2}}},alignments:{'sample.md':{uexisting:{'1,1':'center'}}},future:{untouched:true}};
 const api={
  Plugin:class{async loadData(){return JSON.parse(JSON.stringify(data))}async saveData(d){window.savedData=JSON.parse(JSON.stringify(d))}registerEvent(){}registerEditorExtension(e){extensions.push(...e)}registerMarkdownPostProcessor(f){this.postProcess=f}addCommand(c){commands.push(c)}},
- MarkdownView:class{},Notice:class{constructor(t){notices.push(t)}},setIcon(el,name){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.innerHTML='<path d="M4 4h16v16H4zM4 12h16M12 4v16" fill="none" stroke="currentColor"/>';svg.dataset.fixtureIcon=name;el.replaceChildren(svg);},
+ // An unavailable host icon must not leave our controls blank on Android.
+ MarkdownView:class{},Notice:class{constructor(t){notices.push(t)}},setIcon(){},
  Menu:class{
   constructor(){this.items=[]}addItem(build){const item={setTitle:t=>{item.title=t;return item},setChecked:v=>{item.checked=v;return item},onClick:f=>{item.run=f;return item}};build(item);this.items.push(item);return this}
   showAtPosition(pos){document.querySelectorAll('.menu').forEach(m=>m.remove());const menu=document.createElement('div');menu.className='menu';

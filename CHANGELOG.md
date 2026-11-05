@@ -1,3 +1,11 @@
+# 2.1.3 — Self-contained toolbar icons (2026-11-05)
+
+- Replace the host icon-registry dependency for toolbar/entry controls with bundled SVG line icons, explicit namespace, size, stroke and theme color inheritance.
+- Guard icon presentation against mobile/theme SVG reset styles; retain disabled button opacity.
+- Remove the always-successful fake SVG from the browser fixture. Run all interactions with an empty host icon API and verify actual path geometry, computed stroke, visibility and light/dark screenshots under conflicting CSS.
+- Keep contextual positioning, triggers, selection, original commands and customization unchanged.
+- The exact failure inside the user's Android host remains unobserved; this release removes the reproduced registry/style failure paths rather than claiming a proven host-specific cause.
+
 # 2.1.2 — Restore contextual icon tools (2026-11-05)
 
 - Restore a compact icon popup above the clicked table edge, resize handle or selected region; remove bottom docking and ordinary text-tap activation.

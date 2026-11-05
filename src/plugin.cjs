@@ -1,6 +1,7 @@
 'use strict';
 const Base=require('./base.cjs');
-const {Notice,Menu,MarkdownView,setIcon}=require('obsidian');
+const {Notice,Menu,MarkdownView}=require('obsidian');
+const {renderIcon}=require('./icons.cjs');
 const core=require('./core.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
 const TOOL_ICONS={
@@ -132,7 +133,7 @@ module.exports=class TabletTableTools extends Base{
   const edit=!!table.closest('.cm-content');
   if(edit)this.attachRowHandles(table);
   if(this._ttCleanups?.has(table))return;
-  const open=document.createElement('button');open.type='button';open.className='tt-open';open.title='表格工具';open.setAttribute('aria-label','打开此表格工具');setIcon(open,'table-2');
+  const open=document.createElement('button');open.type='button';open.className='tt-open';open.title='表格工具';open.setAttribute('aria-label','打开此表格工具');renderIcon(open,'table-2');
   open.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
   open.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();this.rememberToolbarAnchor(table,table.rows[0].cells[0],e);this._ttToolsOpen=true;this.selectWhole(table);});
   // Reading view has no editor selection listeners. A real tap/click should
@@ -328,7 +329,7 @@ module.exports=class TabletTableTools extends Base{
   const add=(label,action,pressed,options={})=>{
    const id=options.id||label;if(!options.fixed)this._toolbarActions.push({id,label,action,disabled:!!options.disabled});
    if(!options.fixed&&hidden.has(id))return;
-   const b=document.createElement('button');b.type='button';b.title=label;b.setAttribute('aria-label',label);b.dataset.icon=TOOL_ICONS[label]||'table-2';setIcon(b,b.dataset.icon);b.disabled=!!options.disabled;
+   const b=document.createElement('button');b.type='button';b.title=label;b.setAttribute('aria-label',label);b.dataset.icon=TOOL_ICONS[label]||'table-2';renderIcon(b,b.dataset.icon);b.disabled=!!options.disabled;
    if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));b.addEventListener('click',e=>{e.stopPropagation();action(b);});(options.fixed?bar:controls).appendChild(b);return b;
   };
   if(!edit)add('编辑表格',async()=>{

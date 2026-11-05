@@ -25,6 +25,19 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
   for(const name of ['合并单元格','拆分单元格','居中对齐','垂直居中'])a.equal(await page.getByRole('button',{name,exact:true}).count(),1);
   await page.getByRole('button',{name:'关闭',exact:true}).click();
  });
+ await check('bundled icons paint with missing host icons and conflicting mobile SVG styles',async()=>{
+  await page.evaluate(()=>document.body.classList.add('is-mobile'));
+  const reset=await page.addStyleTag({content:'.is-mobile button svg{display:none!important;visibility:hidden!important;opacity:0!important;stroke:transparent!important;stroke-width:0!important;fill:transparent!important;width:0!important;height:0!important}.is-mobile button svg path{stroke:none!important;fill:transparent!important}'});
+  await edge(cell(1,0));
+  for(const dark of [false,true]){
+   await page.evaluate(dark=>document.body.classList.toggle('theme-dark',dark),dark);
+   const icons=await page.locator('.tt-toolbar button svg,.tt-open svg').evaluateAll(svgs=>svgs.map(svg=>{const s=getComputedStyle(svg),p=getComputedStyle(svg.querySelector('path')),r=svg.getBoundingClientRect(),b=svg.getBBox();return {display:s.display,visibility:s.visibility,opacity:s.opacity,stroke:s.stroke,pathStroke:p.stroke,color:getComputedStyle(svg.parentElement).color,strokeWidth:parseFloat(s.strokeWidth),width:r.width,height:r.height,shape:b.width};}));
+   a.ok(icons.length>=20&&icons.every(i=>i.display!=='none'&&i.visibility==='visible'&&i.opacity==='1'&&i.stroke===i.color&&i.pathStroke===i.color&&i.strokeWidth>0&&i.width===18&&i.height===18&&i.shape>0),JSON.stringify(icons));
+  }
+  await page.screenshot({path:path.join(out,'android-icons-dark.png'),fullPage:true});await page.evaluate(()=>document.body.classList.remove('theme-dark'));
+  await page.screenshot({path:path.join(out,'android-icons-light.png'),fullPage:true});await reset.evaluate(el=>el.remove());
+  await page.getByRole('button',{name:'关闭',exact:true}).click();
+ });
  await check('Android reading view tap opens tools and offers editing',async()=>{
   await page.evaluate(()=>{const preview=document.createElement('div');preview.className='markdown-preview-view';preview.id='reading-fixture';preview.innerHTML='<table data-fixture-uid=\"reading\"><thead><tr><th>名称</th><th>说明</th></tr></thead><tbody><tr><td>消渴</td><td>示例</td></tr></tbody></table>';document.querySelector('.workspace-leaf-content').prepend(preview);p.postProcess(preview,{sourcePath:'sample.md'});});
   await edge(page.locator('#reading-fixture td').first());
