@@ -8,8 +8,33 @@ const results=[],errors=[];let browser;
 async function check(name,run){await run();results.push(name);console.log('PASS '+name)}
 (async()=>{try{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_PATH||'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
+ const fixtureUrl='http://127.0.0.1:'+server.address().port+'/tests/fixture.html';
+ const addReadingTable=()=>{const preview=document.createElement('div');preview.className='markdown-preview-view';preview.id='reading-fixture';preview.innerHTML='<table data-fixture-uid="reading"><thead><tr><th>名称</th><th>说明</th></tr></thead><tbody><tr><td>消渴</td><td>示例</td></tr></tbody></table>';document.querySelector('.workspace-leaf-content').prepend(preview);p.postProcess(preview,{sourcePath:'sample.md'});};
+ const desktop=await browser.newContext({viewport:{width:1280,height:900}});
+ try{
+  const mousePage=await desktop.newPage();mousePage.setDefaultTimeout(6000);mousePage.on('pageerror',e=>errors.push(e.message));
+  await mousePage.goto(fixtureUrl);await mousePage.waitForFunction(()=>window.ready);
+  const bar=mousePage.locator('.tt-toolbar');
+  await check('desktop mouse click opens editing tools and keeps the text caret',async()=>{
+   const target=mousePage.locator('#existing tbody tr').first().locator('td').first();
+   await target.evaluate(cell=>{cell.contentEditable='true';});
+   await target.click();
+   a.equal(await bar.getByRole('button',{name:'居中对齐',exact:true}).isVisible(),true);
+   a.equal(await target.evaluate(cell=>cell===document.activeElement),true);
+   a.equal(await mousePage.evaluate(()=>!!p._sel),false);
+   await bar.getByRole('button',{name:'关闭',exact:true}).click();
+  });
+  await check('desktop mouse click opens reading tools and clicking outside closes them',async()=>{
+   await mousePage.evaluate(addReadingTable);
+   await mousePage.locator('#reading-fixture td').first().click();
+   a.equal(await bar.getByRole('button',{name:'复制/导出',exact:true}).isVisible(),true);
+   a.equal(await bar.getByRole('button',{name:'编辑表格',exact:true}).isVisible(),true);
+   await mousePage.locator('h2').click();
+   a.equal(await bar.isVisible(),false);
+  });
+ }finally{await desktop.close();}
  const context=await browser.newContext({viewport:{width:1000,height:1100},hasTouch:true,isMobile:true});const page=await context.newPage();page.setDefaultTimeout(6000);page.on('pageerror',e=>errors.push(e.message));
- await page.goto('http://127.0.0.1:'+server.address().port+'/tests/fixture.html');await page.waitForFunction(()=>window.ready);
+ await page.goto(fixtureUrl);await page.waitForFunction(()=>window.ready);
  const cell=(r,c)=>page.locator('#existing tr').nth(r).locator('th,td').nth(c);
  const edge=async target=>{const b=await target.boundingBox();await page.touchscreen.tap(b.x+b.width/2,b.y+2);};
  const action=async(group,item)=>{await page.getByRole('button',{name:group,exact:true}).click();await page.getByRole('button',{name:item,exact:true}).click();await page.waitForTimeout(60);};
@@ -39,7 +64,9 @@ async function check(name,run){await run();results.push(name);console.log('PASS 
   await page.getByRole('button',{name:'关闭',exact:true}).click();
  });
  await check('Android reading view tap opens tools and offers editing',async()=>{
-  await page.evaluate(()=>{const preview=document.createElement('div');preview.className='markdown-preview-view';preview.id='reading-fixture';preview.innerHTML='<table data-fixture-uid=\"reading\"><thead><tr><th>名称</th><th>说明</th></tr></thead><tbody><tr><td>消渴</td><td>示例</td></tr></tbody></table>';document.querySelector('.workspace-leaf-content').prepend(preview);p.postProcess(preview,{sourcePath:'sample.md'});});
+  await page.evaluate(addReadingTable);
+  await page.locator('#reading-fixture td').first().tap();
+  a.equal(await page.locator('.tt-toolbar:visible').count(),0);
   await edge(page.locator('#reading-fixture td').first());
   a.equal(await page.getByRole('button',{name:'复制/导出',exact:true}).isVisible(),true);
   await page.getByRole('button',{name:'编辑表格',exact:true}).tap();

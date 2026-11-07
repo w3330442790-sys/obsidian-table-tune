@@ -5,11 +5,11 @@ $targetRoot=(Resolve-Path -LiteralPath $PluginDir).Path
 $installed=Get-Content -LiteralPath (Join-Path $targetRoot 'manifest.json') -Raw | ConvertFrom-Json
 $built=Get-Content -LiteralPath (Join-Path $projectRoot 'dist\table-tune\manifest.json') -Raw | ConvertFrom-Json
 if ($installed.id -ne 'table-tune' -or $built.id -ne 'table-tune') { throw 'Unexpected plugin ID; replacement cancelled.' }
-if ($installed.version -ne '2.0.1') { throw 'Expected installed baseline 2.0.1; replacement cancelled.' }
+if ([version]$installed.version -ge [version]$built.version) { throw 'Built version must be newer than installed version; replacement cancelled.' }
 $programFiles=@('main.js','styles.css','manifest.json')
 $dataPath=Join-Path $targetRoot 'data.json'
 $beforeDataHash=if(Test-Path -LiteralPath $dataPath){(Get-FileHash -LiteralPath $dataPath -Algorithm SHA256).Hash}else{$null}
-$backupRoot=Join-Path $projectRoot ('private\install-backups\2026-11-04-table-tune-'+[guid]::NewGuid().ToString('N').Substring(0,8))
+$backupRoot=Join-Path $projectRoot ('private\install-backups\'+(Get-Date -Format yyyy-MM-dd)+'-table-tune-'+[guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
 foreach($name in ($programFiles+@('data.json'))){$source=Join-Path $targetRoot $name;if(Test-Path -LiteralPath $source){Copy-Item -LiteralPath $source -Destination (Join-Path $backupRoot $name)}}
 $report=@{oldVersion=$installed.version;newVersion=$built.version;target=$targetRoot;backup=$backupRoot;programFiles=@();dataUnchanged=$false}

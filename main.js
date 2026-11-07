@@ -1,4 +1,4 @@
-// Personal Android edition of TableTune. Upstream MIT copyright retained in LICENSE.
+// excel tool, a personal edition of TableTune. Upstream MIT copyright retained in LICENSE.
 (function(hostRequire){const modules={"./base.cjs":function(module,exports,require){
 const { Plugin, MarkdownView, Notice, setIcon } = require('obsidian');
 
@@ -3467,9 +3467,18 @@ module.exports=class TabletTableTools extends Base{
   const open=document.createElement('button');open.type='button';open.className='tt-open';open.title='表格工具';open.setAttribute('aria-label','打开此表格工具');renderIcon(open,'table-2');
   open.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
   open.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();this.rememberToolbarAnchor(table,table.rows[0].cells[0],e);this._ttToolsOpen=true;this.selectWhole(table);});
-  // Reading view has no editor selection listeners. A real tap/click should
-  // still expose tools; listening for click leaves touch scrolling untouched.
-  const activate=e=>{const cell=e.target.closest?.('td,th');if(!table.closest('.cm-content')&&cell?.closest('table')===table){if(this.isCellEdge(e,cell)){this.rememberToolbarAnchor(table,cell,e);this.activateCell(table,cell);}else{this._ttToolsOpen=false;this.hideMergeToolbar();}}};
+  const activate=e=>{
+   const cell=e.target.closest?.('td,th');
+   if(cell?.closest('table')!==table)return;
+   if(table.closest('.cm-content')){
+    // The editor handles edges and drags on pointer events. A mouse click can
+    // open the tools after the native caret has been placed.
+    if(e.pointerType!=='mouse'||this._sel||this._textRange||e.target.closest('.tcr-handle,.tt-row-handle'))return;
+   }else if(e.pointerType!=='mouse'&&!this.isCellEdge(e,cell)){
+    this._ttToolsOpen=false;this.hideMergeToolbar();return;
+   }
+   this.rememberToolbarAnchor(table,cell,e);this.activateCell(table,cell);
+  };
   table.addEventListener('click',activate);
   // Sibling controls never enter table.rows or the Markdown source.
   host.insertBefore(open,table);

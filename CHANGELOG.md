@@ -1,3 +1,9 @@
+# 2.1.4 — excel tool (2026-11-07)
+
+- Show the icon toolbar on desktop mouse clicks inside cells in Live Preview and Reading View.
+- Keep the native text caret and range selection in Live Preview. Touch continues to use the cell-edge trigger.
+- Rename the displayed plugin to `excel tool` and keep the `table-tune` plugin ID for in-place upgrades.
+
 # 2.1.3 — Self-contained toolbar icons (2026-11-05)
 
 - Replace the host icon-registry dependency for toolbar/entry controls with bundled SVG line icons, explicit namespace, size, stroke and theme color inheritance.

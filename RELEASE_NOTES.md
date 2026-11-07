@@ -1,3 +1,11 @@
+## excel tool 2.1.4
+
+- 电脑用鼠标单击单元格即可在实时预览和阅读模式打开悬浮图标栏。实时预览同时保留文字光标。
+- 平板仍通过点单元格边缘、手柄或表格旁的小图标打开工具栏。
+- 插件显示名改为 `excel tool`。继续使用原来的 `table-tune` 插件目录和 `data.json`。
+
+BRAT 更新来源为 `w3330442790-sys/excel-tool`。手动更新可用 `excel-tool-2.1.4.zip`，覆盖其中的三个程序文件即可。
+
 ## 表格工具 · TableTune 2.1.3
 
 图标空白兼容修复：使用插件自带 SVG 与明确描边，不依赖宿主图标库。悬浮位置和功能保持不变。详见 [2.1.3 发布说明](docs/releases/2.1.3.md)。
@@ -14,7 +22,7 @@
 
 安卓触控、固定表头首列、一键整理、底色重点、Excel/TSV 复制与 HTML 导出。完整说明见 [2.1.0 发布说明](docs/releases/2.1.0.md)。
 
-BRAT 仓库：`w3330442790-sys/obsidian-table-tune`。继续使用原 table-tune 插件 ID 和 data.json，不删除或批量转换已有表格。
+以上版本均使用 `table-tune` 插件 ID 和原有 `data.json`。
 
 以下为上游 2.0.1 的历史说明。
 
